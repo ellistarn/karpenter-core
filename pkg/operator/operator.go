@@ -148,7 +148,6 @@ func (o *Operator) WithControllers(ctx context.Context, controllers ...corecontr
 	for _, c := range controllers {
 		lo.Must0(c.Builder(ctx, o.Manager).Complete(c), "failed to register controller")
 	}
-	lo.Must0(o.Manager.AddHealthzCheck("healthz", healthz.Ping), "failed to setup liveness probe")
 	lo.Must0(o.Manager.AddReadyzCheck("readyz", healthz.Ping), "failed to setup readiness probe")
 	return o
 }
