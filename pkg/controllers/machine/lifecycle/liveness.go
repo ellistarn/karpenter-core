@@ -38,16 +38,16 @@ type Liveness struct {
 const registrationTTL = time.Minute * 15
 
 func (r *Liveness) Reconcile(ctx context.Context, machine *v1alpha5.Machine) (reconcile.Result, error) {
-	registered := machine.StatusConditions().GetCondition(v1alpha5.MachineRegistered)
-	if registered.IsTrue() {
+	initialized := machine.StatusConditions().GetCondition(v1alpha5.MachineInitialized)
+	if initialized.IsTrue() {
 		return reconcile.Result{}, nil
 	}
-	if registered == nil {
+	if initialized == nil {
 		return reconcile.Result{Requeue: true}, nil
 	}
 	// If the MachineRegistered statusCondition hasn't gone True during the TTL since we first updated it, we should terminate the machine
-	if r.clock.Since(registered.LastTransitionTime.Inner.Time) < registrationTTL {
-		return reconcile.Result{RequeueAfter: registrationTTL - r.clock.Since(registered.LastTransitionTime.Inner.Time)}, nil
+	if r.clock.Since(initialized.LastTransitionTime.Inner.Time) < registrationTTL {
+		return reconcile.Result{RequeueAfter: registrationTTL - r.clock.Since(initialized.LastTransitionTime.Inner.Time)}, nil
 	}
 	// Delete the machine if we believe the machine won't register since we haven't seen the node
 	if err := r.kubeClient.Delete(ctx, machine); err != nil {

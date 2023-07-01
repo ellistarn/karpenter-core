@@ -17,7 +17,6 @@ package terminator
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/samber/lo"
 	v1 "k8s.io/api/core/v1"
@@ -26,6 +25,7 @@ import (
 	"knative.dev/pkg/logging"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/aws/karpenter-core/pkg/utils/pod"
 	podutil "github.com/aws/karpenter-core/pkg/utils/pod"
 )
 
@@ -107,7 +107,7 @@ func (t *Terminator) getPods(ctx context.Context, node *v1.Node) ([]*v1.Pod, err
 			continue
 		}
 		// Ignore if kubelet is partitioned and pods are beyond graceful termination window
-		if t.isStuckTerminating(lo.ToPtr(p)) {
+		if pod.IsStuckTerminating(lo.ToPtr(p)) {
 			continue
 		}
 		pods = append(pods, lo.ToPtr(p))
@@ -135,11 +135,4 @@ func (t *Terminator) evict(pods []*v1.Pod) {
 	} else {
 		t.evictionQueue.Add(nonCritical...)
 	}
-}
-
-func (t *Terminator) isStuckTerminating(pod *v1.Pod) bool {
-	if pod.DeletionTimestamp == nil {
-		return false
-	}
-	return t.clock.Now().After(pod.DeletionTimestamp.Time.Add(1 * time.Minute))
 }

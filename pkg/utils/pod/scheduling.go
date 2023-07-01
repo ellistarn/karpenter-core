@@ -15,6 +15,8 @@ limitations under the License.
 package pod
 
 import (
+	"time"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -53,6 +55,13 @@ func IsTerminal(pod *v1.Pod) bool {
 
 func IsTerminating(pod *v1.Pod) bool {
 	return pod.DeletionTimestamp != nil
+}
+
+func IsStuckTerminating(pod *v1.Pod) bool {
+	if pod.DeletionTimestamp == nil {
+		return false
+	}
+	return time.Now().After(pod.DeletionTimestamp.Time)
 }
 
 func IsOwnedByDaemonSet(pod *v1.Pod) bool {
