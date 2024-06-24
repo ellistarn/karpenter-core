@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/awslabs/operatorpkg/object"
 	"github.com/samber/lo"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -51,8 +52,8 @@ const component = "webhook"
 
 var (
 	Resources = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
-		{Group: "karpenter.sh", Version: "v1beta1", Kind: "NodePool"}:  &v1beta1.NodePool{},
-		{Group: "karpenter.sh", Version: "v1beta1", Kind: "NodeClaim"}: &v1beta1.NodeClaim{},
+		object.GVK(&v1beta1.NodePool{}):  &v1beta1.NodePool{},
+		object.GVK(&v1beta1.NodeClaim{}): &v1beta1.NodeClaim{},
 	}
 )
 

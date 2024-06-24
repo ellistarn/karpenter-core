@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"cmp"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -43,6 +45,9 @@ type NodeOverlaySpec struct {
 	// Selector matches against simulated nodes and modifies their scheduling properties. Matches all if empty.
 	// +optional
 	Selector []v1.NodeSelectorRequirement `json:"selector,omitempty"`
+	// Weight defines the order of application of node overlays, if multiple are defined.
+	// +optional
+	Weight int `json:"weight"`
 	// PricePercent modifies the price of the simulated node (PriceAdjustment + (Price * PricePercent / 100)).
 	// +optional
 	PricePercent *int `json:"pricePercent,omitempty"`
@@ -69,4 +74,11 @@ type NodeOverlaySpec struct {
 	// This feature is not currently implemented
 	// +optional
 	// Overhead v1.ResourceList `json:"overhead,omitempty"`
+}
+
+func (n *NodeOverlay) Compare(n2 *NodeOverlay) int {
+	if c := cmp.Compare(n.Spec.Weight, n2.Spec.Weight); c != 0 {
+		return c
+	}
+	return 0
 }

@@ -75,6 +75,10 @@ spec:
                   - operator
                   type: object
                 type: array
+              weight:
+                description: Weight defines the order of application of node overlays,
+                  if multiple are defined.
+                type: integer
             type: object
         required:
         - spec

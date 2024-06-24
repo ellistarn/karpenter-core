@@ -44,6 +44,7 @@ import (
 	"sigs.k8s.io/karpenter/pkg/cloudprovider/fake"
 	"sigs.k8s.io/karpenter/pkg/controllers/disruption"
 	"sigs.k8s.io/karpenter/pkg/controllers/disruption/orchestration"
+	"sigs.k8s.io/karpenter/pkg/controllers/instancetype"
 	"sigs.k8s.io/karpenter/pkg/controllers/provisioning"
 	"sigs.k8s.io/karpenter/pkg/controllers/state"
 	"sigs.k8s.io/karpenter/pkg/controllers/state/informer"
@@ -60,6 +61,7 @@ var cluster *state.Cluster
 var disruptionController *disruption.Controller
 var prov *provisioning.Provisioner
 var cloudProvider *fake.CloudProvider
+var instanceTypeProvider *instancetype.Provider
 var nodeStateController *informer.NodeController
 var nodeClaimStateController *informer.NodeClaimController
 var fakeClock *clock.FakeClock
@@ -83,14 +85,15 @@ var _ = BeforeSuite(func() {
 	env = test.NewEnvironment(test.WithCRDs(coreapis.CRDs...))
 	ctx = options.ToContext(ctx, test.Options())
 	cloudProvider = fake.NewCloudProvider()
+	instanceTypeProvider = instancetype.NewProvider(cloudProvider)
 	fakeClock = clock.NewFakeClock(time.Now())
 	cluster = state.NewCluster(fakeClock, env.Client)
 	nodeStateController = informer.NewNodeController(env.Client, cluster)
 	nodeClaimStateController = informer.NewNodeClaimController(env.Client, cluster)
 	recorder = test.NewEventRecorder()
-	prov = provisioning.NewProvisioner(env.Client, recorder, cloudProvider, cluster)
+	prov = provisioning.NewProvisioner(env.Client, recorder, instanceTypeProvider, cluster)
 	queue = orchestration.NewTestingQueue(env.Client, recorder, cluster, fakeClock, prov)
-	disruptionController = disruption.NewController(fakeClock, env.Client, prov, cloudProvider, recorder, cluster, queue)
+	disruptionController = disruption.NewController(fakeClock, env.Client, prov, instanceTypeProvider, recorder, cluster, queue)
 })
 
 var _ = AfterSuite(func() {
@@ -148,6 +151,7 @@ var _ = BeforeEach(func() {
 var _ = AfterEach(func() {
 	ExpectCleanedUp(ctx, env.Client)
 
+	instanceTypeProvider.Clear()
 	// Reset the metrics collectors
 	disruption.ActionsPerformedCounter.Reset()
 	disruption.NodesDisruptedCounter.Reset()
@@ -203,7 +207,7 @@ var _ = Describe("Simulate Scheduling", func() {
 		// nodePool.Spec.Disruption.Budgets = []v1beta1.Budget{{Nodes: "100%"}}
 		// ExpectApplied(ctx, env.Client, nodePool)
 
-		nodePoolMap, nodePoolToInstanceTypesMap, err := disruption.BuildNodePoolMap(ctx, env.Client, cloudProvider)
+		nodePoolMap, nodePoolToInstanceTypesMap, err := disruption.BuildNodePoolMap(ctx, env.Client, instanceTypeProvider)
 		Expect(err).To(Succeed())
 
 		// Mark all nodeclaims as marked for deletion
